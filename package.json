@@ -1,0 +1,29 @@
+{
+  "name": "dimsum-chat",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/dimsum-chat.umd.cjs",
+  "module": "./dist/dimsum-chat.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/dimsum-chat.js",
+      "require": "./dist/dimsum-chat.umd.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "pack:dry-run": "npm pack --dry-run"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.25",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.4",
+    "vite-plugin-dts": "^3.7.3"
+  }
+}
