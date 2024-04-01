@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="referrer" content="no-referrer" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>danmaku example</title>
+</head>
+<body>
+  <div id="app"></div>
+  <script src="../dist/dimsum-chat.umd.cjs"></script>
+  <script>
+
+const { WebSocketManager, getBfaceURL, getWebSocketURL, Parser } = DimSumChat;
+
+const webSocketManager = WebSocketManager.getInstance();
+const WebSocketURL = getWebSocketURL();
+webSocketManager.connect(WebSocketURL);
+
+const appEle = document.getElementById('app');
+
+webSocketManager.addMessageListener((msg) => {
+  const msgObj = JSON.parse(msg);
+  const p = new Parser(msgObj);
+  if (p.type === 'comment') {
+    console.log(p)
+    console.log(p.userName, p.comment, p.avatar)
+    // 多平台头像
+    const crossPlatformAvatar = p.avatar || (p.platform === "bilibili" && p.uid ? getBfaceURL(p.uid) : undefined);
+    // 带小表情的评论
+    const commentWithEmots = p.getCommentHTML({
+      emotStyle: 'display:inline-block;vertical-align:baseline;height:30px;'
+    })
+    // 抽象化用户等级
+    const abstractLevel = p.getAbstractLevel({
+      douyinSteps: [7, 11, 15] // 默认值
+    }) // 0 - (p.clubLevel = 0~7); 1 - (p.clubLevel = 8~11); 2 - (p.clubLevel = 11~15); 3 - (p.clubLevel > 15); 
+  }
+})
+
+
+  </script>
+</body>
+</html>
