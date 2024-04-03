@@ -1,6 +1,6 @@
 {
   "name": "dimsum-chat",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "This is a simple utility package for DimSum Chat developer.",
   "author": "Miego Live",
   "license": "MIT",
@@ -12,7 +12,10 @@
   "bugs": {
     "url": "https://github.com/MiegoLive/dimsum-chat/issues"
   },
-  "keywords": ["dimsumchat", "utils"],
+  "keywords": [
+    "dimsumchat",
+    "utils"
+  ],
   "type": "module",
   "main": "./dist/dimsum-chat.umd.cjs",
   "module": "./dist/dimsum-chat.js",
