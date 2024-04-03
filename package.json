@@ -17,6 +17,8 @@
   "main": "./dist/dimsum-chat.umd.cjs",
   "module": "./dist/dimsum-chat.js",
   "types": "./dist/index.d.ts",
+  "unpkg": "./dist/dimsum-chat.umd.cjs",
+  "jsdelivr": "./dist/dimsum-chat.umd.cjs",
   "exports": {
     ".": {
       "import": "./dist/dimsum-chat.js",
