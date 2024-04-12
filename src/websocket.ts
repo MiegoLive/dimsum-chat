@@ -1,4 +1,7 @@
 "use strict";
+
+import { Parser } from ".";
+
 class WebSocketManager {
   private static instance: WebSocketManager;
   private webSocket: WebSocket | null;
@@ -78,7 +81,7 @@ interface onMessageOptions {
   customWsServer?: string | URL
 }
 
-function onMessage(callback: (msg: {type: string, content: any}) => void, options: onMessageOptions = {}): void {
+function onMessage(callback: (msg?: {type: string, content: any}, parser?: Parser) => void, options: onMessageOptions = {}): void {
   const {
     customWsServer = getWebSocketURL()
   } = options;
@@ -89,7 +92,8 @@ function onMessage(callback: (msg: {type: string, content: any}) => void, option
       type: string,
       content: any
     };
-    callback(msgObj);
+    const parser = new Parser(msgObj)
+    callback(msgObj, parser);
   });
 }
 
