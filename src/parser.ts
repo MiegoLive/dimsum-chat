@@ -293,6 +293,26 @@ class Parser {
     return undefined;
   }
 
+  // 0 - 非会员； 1 - 会员； 2 - 年费会员
+  get douyinSubscribe(): number | undefined {
+    if (this.platform === "douyin") {
+      if ("user" in this.rawContent && this.rawContent.user.fansClub !== null) {
+        const icons = this.rawContent.user.fansClub.data.badge.icons;
+        if ("6" in icons && (icons["6"].uri as string).includes("subscribe_year")) {
+          return 2;
+        }
+        if ("5" in icons && (icons["5"].uri as string).includes("subscribe_year")) {
+          return 2;
+        }
+        if ("3" in icons || "5" in icons) {
+          return 1;
+        }
+        return 0;
+      }
+    }
+    return undefined;
+  }
+
   get avatar(): string | undefined {
     if (this.platform === "bilibili" || this.platform === "openblive") {
       if ("data" in this.rawContent) {
