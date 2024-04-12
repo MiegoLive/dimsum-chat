@@ -11,17 +11,11 @@
   <script src="../dist/dimsum-chat.umd.cjs"></script>
   <script>
 
-const { WebSocketManager, getBfaceURL, getWebSocketURL, Parser } = DimSumChat;
-
-const webSocketManager = WebSocketManager.getInstance();
-const WebSocketURL = getWebSocketURL();
-webSocketManager.connect(WebSocketURL);
+const { onMessage, getBfaceURL } = DimSumChat;
 
 const appEle = document.getElementById('app');
 
-webSocketManager.addMessageListener((msg) => {
-  const msgObj = JSON.parse(msg);
-  const p = new Parser(msgObj);
+onMessage((_, p) => {
   if (p.type === 'comment') {
     console.log(p)
     console.log(p.userName, p.comment, p.avatar)
@@ -36,6 +30,8 @@ webSocketManager.addMessageListener((msg) => {
       douyinSteps: [7, 11, 15] // 默认值
     }) // 0 - (p.clubLevel = 0~7); 1 - (p.clubLevel = 8~11); 2 - (p.clubLevel = 11~15); 3 - (p.clubLevel > 15); 
   }
+}, {
+  customWsServer: "ws://localhost:13499/websocket"
 })
 
 
