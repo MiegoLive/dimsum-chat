@@ -294,7 +294,7 @@ class Parser {
   }
 
   // 0 - 非会员； 1 - 会员； 2 - 年费会员
-  get douyinSubscribe(): number | undefined {
+  get douyinSubscribe(): 0 | 1 | 2 | undefined {
     if (this.platform === "douyin") {
       if ("user" in this.rawContent && this.rawContent.user.fansClub !== null) {
         const icons = this.rawContent.user.fansClub.data.badge.icons;

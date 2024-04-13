@@ -81,7 +81,7 @@ interface onMessageOptions {
   customWsServer?: string | URL
 }
 
-function onMessage(callback: (msg?: {type: string, content: any}, parser?: Parser) => void, options: onMessageOptions = {}): void {
+function onMessage(callback: (msg: {type: string, content: any}, parser: Parser) => void, options: onMessageOptions = {}): void {
   const {
     customWsServer = getWebSocketURL()
   } = options;
