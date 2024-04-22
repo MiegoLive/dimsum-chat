@@ -544,7 +544,7 @@ class Parser {
       acfun: () => this.rawContent.gift.batchSize,
       bilibili: () => this.rawContent.data.num,
       openblive: () => this.rawContent.data.gift_num,
-      douyin: () => this.rawContent.comboCount
+      douyin: () => this.rawContent.groupCount
     }
     if (this.type === "gift" && map[this.platform as keyof typeof map]) {
       return map[this.platform as keyof typeof map]();
@@ -569,7 +569,7 @@ class Parser {
       },
       openblive: () => {
         if (this.rawContent.data.paid) {
-          return this.rawContent.data.price;
+          return this.rawContent.data.price / 1000;
         }
         return 0;
       },
