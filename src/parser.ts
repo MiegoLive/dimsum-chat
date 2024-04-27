@@ -46,6 +46,11 @@ class Parser {
     return this._cachedValues[key];
   }
 
+/**
+ * The live platform to which the message belongs.
+ *
+ * @see {@link https://dimsum.chat/zh/api/parser.html#parser-platform}
+ */
   get platform(): "acfun" | "openblive" | "bilibili" | "douyin" | undefined {
     const douyinPattern = /^Webcast[A-Z][a-zA-Z]*Message$/;
     const AcfunPattern = /^(Common|Acfun)(Action|State)Signal[A-Z][a-zA-Z]*/;
@@ -65,6 +70,12 @@ class Parser {
     return undefined;
   }
 
+/**
+ * Message Type.
+ *
+ * @type see {@link MessageType}
+ * @see {@link https://dimsum.chat/zh/api/parser.html#parser-type}
+ */
   get type(): MessageType {
     const types = {
       comment: [
@@ -119,6 +130,11 @@ class Parser {
     return undefined;
   }
 
+/**
+ * User Name.
+ *
+ * @see {@link https://dimsum.chat/zh/api/parser.html#parser-username}
+ */
   get userName(): string | undefined {
     if (this.platform === "bilibili" || this.platform === "openblive") {
       if (this.rawType === "DANMU_MSG") {
@@ -154,6 +170,11 @@ class Parser {
     return undefined;
   }
 
+/**
+ * User ID.
+ *
+ * @see {@link https://dimsum.chat/zh/api/parser.html#parser-uid}
+ */
   get uid(): number | string | undefined {
     if (this.platform === "bilibili" || this.platform === "openblive") {
       if (this.rawType === "DANMU_MSG") {
@@ -293,7 +314,12 @@ class Parser {
     return undefined;
   }
 
-  // 0 - 非会员； 1 - 会员； 2 - 年费会员
+/**
+ * User subscription status in the current Douyin live room.
+ *
+ * @type `0` for non-member, `1` for monthly member, `2` for annual member
+ * @see {@link https://dimsum.chat/zh/api/parser.html#parser-douyinsubscribe}
+ */
   get douyinSubscribe(): 0 | 1 | 2 | undefined {
     if (this.platform === "douyin") {
       if ("user" in this.rawContent && this.rawContent.user.fansClub !== null) {
@@ -364,6 +390,13 @@ class Parser {
     }
   }
 
+/**
+ * Simple method to construct comments as HTML strings. Useful for rendering comment messages in general.
+ * 
+ * @param options - {@link commentParseOptions}
+ * @returns Rendered comment HTML.
+ * @see {@link https://dimsum.chat/zh/api/parser.html#parser-getcommenthtml}
+ */
   public getCommentHTML(options: commentParseOptions = {}): string | undefined {
     const {
       stickerStyle = "",
@@ -435,6 +468,13 @@ class Parser {
     }
   }
 
+/**
+ * Custom comment content builder.
+ *
+ * @param builder - builder function.
+ *
+ * @see {@link https://dimsum.chat/zh/api/parser.html#parser-commentbuilder}
+ */
   public CommentBuilder(
     builder:(comment: string, stickerUrl?: string, emots?: [string, string][], ) => string
   ): string | undefined {
@@ -518,7 +558,7 @@ class Parser {
     if (this.platform === "bilibili" || this.platform === "openblive") {
       if ("data" in this.rawContent) {
         if ("price" in this.rawContent.data) {
-          return this.rawContent.price / 1000;
+          return this.rawContent.data.price / 1000;
         }
       }
     }
