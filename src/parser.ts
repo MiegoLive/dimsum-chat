@@ -5,6 +5,9 @@ import { BilibiliEmots } from "./emots/bilibili-emots.js";
 type MessageType = "comment" | "gift" | "follow" | "joinclub" | "like" | "guard" | "superchat" | "enter" | "share" | undefined;
 
 class Parser {
+  // groupId_userId_giftId : comboCount
+  private static douyinGiftGroup = new Map<string, number>();
+
   public readonly rawType: string;
   public readonly rawContent: any;
 
@@ -584,7 +587,26 @@ class Parser {
       acfun: () => this.rawContent.gift.batchSize,
       bilibili: () => this.rawContent.data.num,
       openblive: () => this.rawContent.data.gift_num,
-      douyin: () => this.rawContent.groupCount
+      douyin: () => {
+        if (this.rawContent.sendType === 4) {
+          const LIMIT = 1024;
+          const comboCount = this.rawContent.comboCount as number;
+          const groupId = this.rawContent.groupId as number;
+          const giftId = this.rawContent.giftId;
+          const userId = this.uid;
+          const key = `${groupId}_${userId}_${giftId}`;
+          let lastComboCount = 0;
+          if (Parser.douyinGiftGroup.has(key)) {
+            lastComboCount = Parser.douyinGiftGroup.get(key) ?? 0;
+          }
+          Parser.douyinGiftGroup.set(key, comboCount);
+          if (Parser.douyinGiftGroup.size > LIMIT) {
+            Parser.douyinGiftGroup.delete(Parser.douyinGiftGroup.keys().next().value);
+          }
+          return comboCount - lastComboCount;
+        }
+        return this.rawContent.groupCount;
+      }
     }
     if (this.type === "gift" && map[this.platform as keyof typeof map]) {
       return map[this.platform as keyof typeof map]();

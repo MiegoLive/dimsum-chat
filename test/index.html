@@ -17,8 +17,8 @@ const appEle = document.getElementById('app');
 
 onMessage((_, p) => {
   if (p.type === 'comment') {
-    console.log(p)
-    console.log(p.userName, p.comment, p.avatar)
+    // console.log(p)
+    // console.log(p.userName, p.comment, p.avatar)
     // 多平台头像
     const crossPlatformAvatar = p.avatar || (p.platform === "bilibili" && p.uid ? getBfaceURL(p.uid) : undefined);
     // 带小表情的评论
@@ -29,6 +29,9 @@ onMessage((_, p) => {
     const abstractLevel = p.getAbstractLevel({
       douyinSteps: [7, 11, 15] // 默认值
     }) // 0 - (p.clubLevel = 0~7); 1 - (p.clubLevel = 8~11); 2 - (p.clubLevel = 11~15); 3 - (p.clubLevel > 15); 
+  }
+  if (p.type === 'gift') {
+    console.log(p.userName, p.giftName, p.giftNum)
   }
 }, {
   customWsServer: "ws://localhost:13499/websocket"
