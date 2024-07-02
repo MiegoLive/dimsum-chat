@@ -31,7 +31,7 @@ onMessage((_, p) => {
     }) // 0 - (p.clubLevel = 0~7); 1 - (p.clubLevel = 8~11); 2 - (p.clubLevel = 11~15); 3 - (p.clubLevel > 15); 
   }
   if (p.type === 'gift') {
-    console.log(p.userName, p.giftName, p.giftNum)
+    console.log(p.userName, p.giftName, p.giftNum, p.rawContent.sendType);
   }
 }, {
   customWsServer: "ws://localhost:13499/websocket"

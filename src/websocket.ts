@@ -1,6 +1,8 @@
 "use strict";
 
 import { Parser } from ".";
+import { DimSumAuth } from "./auth";
+import { Message } from "./types";
 
 class WebSocketManager {
   private static instance: WebSocketManager;
@@ -81,19 +83,18 @@ interface onMessageOptions {
   customWsServer?: string | URL
 }
 
-function onMessage(callback: (msg: {type: string, content: any}, parser: Parser) => void, options: onMessageOptions = {}): void {
+function onMessage(callback: (message: Message, parser: Parser) => void, options: onMessageOptions = {}): void {
   const {
     customWsServer = getWebSocketURL()
   } = options;
+  const auth = DimSumAuth.getInstance();
   const webSocketManager = WebSocketManager.getInstance();
   webSocketManager.connect(customWsServer);
-  webSocketManager.addMessageListener( msg => {
-    const msgObj = JSON.parse(msg) as {
-      type: string,
-      content: any
-    };
-    const parser = new Parser(msgObj)
-    callback(msgObj, parser);
+  webSocketManager.addMessageListener(messageString => {
+    const message = JSON.parse(messageString) as Message;
+    const authenticatedMessage = auth.passMessage(message);
+    const parser = new Parser(authenticatedMessage)
+    callback(authenticatedMessage, parser);
   });
 }
 
