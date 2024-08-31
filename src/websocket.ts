@@ -31,9 +31,11 @@ class WebSocketManager {
     this.webSocket.onmessage = this.handleMessage.bind(this);
     this.webSocket.onopen = () => {
       console.log("connected");
-      this.messageListeners.forEach(
-        listener => listener(JSON.stringify(infoMessage.connected))
-      );
+      setTimeout(() => {
+        this.messageListeners.forEach(
+          listener => listener(JSON.stringify(infoMessage.connected))
+        );
+      }, 100);
     }
     this.webSocket.onclose = () => {
       console.log("close");
@@ -57,7 +59,10 @@ class WebSocketManager {
 
   public addMessageListener(listener: (message: string) => void): void {
     this.messageListeners.push(listener);
-    listener(JSON.stringify(infoMessage.welcome));
+
+    setTimeout(() => {
+      listener(JSON.stringify(infoMessage.welcome));
+    }, 100);
   }
 
   public removeMessageListener(listener: (message: string) => void): void {
