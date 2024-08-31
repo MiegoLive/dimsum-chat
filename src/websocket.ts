@@ -3,6 +3,8 @@
 import { Parser } from ".";
 import { DimSumAuth } from "./auth";
 import { Message } from "./types";
+import { infoMessage } from "./infoMessage";
+import { handleMessage } from "./dimsumMessage";
 
 class WebSocketManager {
   private static instance: WebSocketManager;
@@ -29,6 +31,9 @@ class WebSocketManager {
     this.webSocket.onmessage = this.handleMessage.bind(this);
     this.webSocket.onopen = () => {
       console.log("connected");
+      this.messageListeners.forEach(
+        listener => listener(JSON.stringify(infoMessage.connected))
+      );
     }
     this.webSocket.onclose = () => {
       console.log("close");
@@ -43,10 +48,16 @@ class WebSocketManager {
   private handleMessage(event: MessageEvent): void {
     const message = event.data;
     this.messageListeners.forEach(listener => listener(message));
+    const messageObj = JSON.parse(message) as Message;
+    const response = handleMessage(messageObj);
+    if (response) {
+      this.webSocket?.send(JSON.stringify(response));
+    }
   }
 
   public addMessageListener(listener: (message: string) => void): void {
     this.messageListeners.push(listener);
+    listener(JSON.stringify(infoMessage.welcome));
   }
 
   public removeMessageListener(listener: (message: string) => void): void {

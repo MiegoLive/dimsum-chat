@@ -29,12 +29,19 @@ onMessage((_, p) => {
     const abstractLevel = p.getAbstractLevel({
       douyinSteps: [7, 11, 15] // 默认值
     }) // 0 - (p.clubLevel = 0~7); 1 - (p.clubLevel = 8~11); 2 - (p.clubLevel = 11~15); 3 - (p.clubLevel > 15); 
+    appEle.innerHTML += `
+      <div style="margin-bottom: 10px;">
+        <img src="${crossPlatformAvatar}" style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px;">
+        <span style="color: #333;">${p.userName} (${abstractLevel})</span>
+        <span style="color: #999; margin-left: 10px;">${commentWithEmots}</span>
+      </div>
+    `;
   }
   if (p.type === 'gift') {
     console.log(p.userName, p.giftName, p.giftNum, p.rawContent.sendType);
   }
 }, {
-  customWsServer: "ws://localhost:13499/websocket"
+  customWsServer: "ws://localhost:13500/websocket"
 })
 
 
