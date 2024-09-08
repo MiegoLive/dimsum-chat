@@ -121,6 +121,9 @@ class Parser {
       ],
       share: []
     };
+    if (this.rawType === "WebcastGiftMessage" && this.rawContent.repeatEnd === 1) {
+      return undefined; // ignore repeatend gift message
+    }
     for (let type in types) {
       if (types[type as keyof typeof types].includes(this.rawType as never)){
         return type as MessageType;
