@@ -224,7 +224,7 @@ class Parser {
             return this.rawContent.data.medal_info.medal_level;
           }
         }
-        if ("fans_medal" in this.rawContent.data) {
+        if ("fans_medal" in this.rawContent.data && this.rawContent.data.fans_medal !== null) {
           if ("medal_level" in this.rawContent.data.fans_medal) {
             return this.rawContent.data.fans_medal.medal_level;
           }
@@ -268,7 +268,7 @@ class Parser {
             return this.rawContent.data.medal_info.medal_name;
           }
         }
-        if ("fans_medal" in this.rawContent.data) {
+        if ("fans_medal" in this.rawContent.data && this.rawContent.data.fans_medal !== null) {
           if ("medal_name" in this.rawContent.data.fans_medal) {
             return this.rawContent.data.fans_medal.medal_name;
           }
