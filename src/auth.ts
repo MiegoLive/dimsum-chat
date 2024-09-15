@@ -70,6 +70,18 @@ export class DimSumAuth {
         const widgetId: string = window.location.pathname.split('/')[1];
         this.checkAuthentication(widgetId, platform, roomId);
       }
+      if (message.type === 'INTERACT_WORD') {
+        const platform = 'bilibili';
+        const roomId: string = String(message.content.data.roomid);
+        const widgetId: string = window.location.pathname.split('/')[1];
+        this.checkAuthentication(widgetId, platform, roomId);
+      }
+      if (message.type === 'LIVE_OPEN_PLATFORM_DM' || message.type === 'LIVE_OPEN_PLATFORM_SEND_GIFT') {
+        const platform = 'bilibili';
+        const roomId: string = String(message.content.data.room_id);
+        const widgetId: string = window.location.pathname.split('/')[1];
+        this.checkAuthentication(widgetId, platform, roomId);
+      }
     }
     if (this.isPiracy) {
       // messages随机取一个
