@@ -17,7 +17,7 @@ export class DimSumAuth {
   private readonly AUTH_HOST = 'https://dimsum-widget-auth-1301031323.cos.ap-guangzhou.myqcloud.com';
   private readonly WHITELIST_WIDGETS = ['dimsum-bonk-2024-widget', 'douyin-bonk-2024-widget'];
   private readonly MAX_RETRY_COUNT = 3;
-  private isAuthenticated: boolean = false;
+  private authenticatedPlatformAndRoomId?: string = undefined;
   private isPiracy: boolean = false;
   private retryCount: number = 0;
 
@@ -30,6 +30,8 @@ export class DimSumAuth {
 
   private checkAuthentication(widgetId: string, platform: string, roomId: string) {
     widgetId = this.updateWidgetId(widgetId);
+    if (!this.WHITELIST_WIDGETS.includes(widgetId)) return;
+    if (this.authenticatedPlatformAndRoomId === `${platform}-${roomId}`) return;
     
     const retry = () => {
       this.retryCount++;
@@ -38,50 +40,48 @@ export class DimSumAuth {
           this.checkAuthentication(widgetId, platform, roomId);
         }, 1000);
       } else {
-        this.isAuthenticated = true;
         this.isPiracy = true;
       }
     }
 
-    if (this.WHITELIST_WIDGETS.includes(widgetId)) {
-      const url = `${this.AUTH_HOST}/${widgetId}/whitelist/${platform}/${roomId}`;
-      return fetch(url)
-        .then(res => {
-          console.log('checkAuthentication', res.status);
-          if (res.status === 200) {
-            this.isAuthenticated = true;
-            this.isPiracy = false;
-          } else {
-            retry();
-          }
-        })
-        .catch(() => {
-          console.log('checkAuthentication error');
+    const url = `${this.AUTH_HOST}/${widgetId}/whitelist/${platform}/${roomId}`;
+    return fetch(url)
+      .then(res => {
+        console.log('checkAuthentication', res.status);
+        if (res.status === 200) {
+          this.authenticatedPlatformAndRoomId = `${platform}-${roomId}`;
+          this.isPiracy = false;
+        } else {
           retry();
-        });
-    }
+        }
+      })
+      .catch(() => {
+        console.log('checkAuthentication error');
+        retry();
+      });
   }
 
   public passMessage(message: Message): Message {
-    if (!this.isAuthenticated) {
-      if (message.type === 'DimSumChatRoomInfo') {
-        const platform: string = message.content.platform ?? message.content.platfrom as string;
-        const roomId: string = message.content.roomId as string;
-        const widgetId: string = window.location.pathname.split('/')[1];
-        this.checkAuthentication(widgetId, platform, roomId);
+    if (message.type === 'DimSumChatRoomInfo') {
+      const platform: string = message.content.platform ?? message.content.platfrom as string;
+      const roomId: string = message.content.roomId as string;
+      const widgetId: string = window.location.pathname.split('/')[1];
+      this.checkAuthentication(widgetId, platform, roomId);
+    }
+    if (message.type === 'INTERACT_WORD') {
+      const platform = 'bilibili';
+      const roomId: string = String(message.content.data.roomid);
+      const widgetId: string = window.location.pathname.split('/')[1];
+      this.checkAuthentication(widgetId, platform, roomId);
+    }
+    if (message.type === 'LIVE_OPEN_PLATFORM_DM' || message.type === 'LIVE_OPEN_PLATFORM_SEND_GIFT') {
+      if (message.content.data.room_id === undefined) {
+        return message;
       }
-      if (message.type === 'INTERACT_WORD') {
-        const platform = 'bilibili';
-        const roomId: string = String(message.content.data.roomid);
-        const widgetId: string = window.location.pathname.split('/')[1];
-        this.checkAuthentication(widgetId, platform, roomId);
-      }
-      if (message.type === 'LIVE_OPEN_PLATFORM_DM' || message.type === 'LIVE_OPEN_PLATFORM_SEND_GIFT') {
-        const platform = 'bilibili';
-        const roomId: string = String(message.content.data.room_id);
-        const widgetId: string = window.location.pathname.split('/')[1];
-        this.checkAuthentication(widgetId, platform, roomId);
-      }
+      const platform = 'bilibili';
+      const roomId: string = String(message.content.data.room_id);
+      const widgetId: string = window.location.pathname.split('/')[1];
+      this.checkAuthentication(widgetId, platform, roomId);
     }
     if (this.isPiracy) {
       // messages随机取一个
