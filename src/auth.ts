@@ -62,33 +62,40 @@ export class DimSumAuth {
   }
 
   public passMessage(message: Message): Message {
-    if (message.type === 'DimSumChatRoomInfo') {
-      const platform: string = message.content.platform ?? message.content.platfrom as string;
-      const roomId: string = message.content.roomId as string;
-      const widgetId: string = window.location.pathname.split('/')[1];
-      this.checkAuthentication(widgetId, platform, roomId);
-    }
-    if (message.type === 'INTERACT_WORD') {
-      const platform = 'bilibili';
-      const roomId: string = String(message.content.data.roomid);
-      const widgetId: string = window.location.pathname.split('/')[1];
-      this.checkAuthentication(widgetId, platform, roomId);
-    }
-    if (message.type === 'LIVE_OPEN_PLATFORM_DM' || message.type === 'LIVE_OPEN_PLATFORM_SEND_GIFT') {
-      if (message.content.data.room_id === undefined) {
-        return message;
+    try {
+      if (message.type === 'DimSumChatRoomInfo') {
+        const platform: string = message.content.platform ?? message.content.platfrom as string;
+        const roomId: string = message.content.roomId as string;
+        const widgetId: string = window.location.pathname.split('/')[1];
+        this.checkAuthentication(widgetId, platform, roomId);
       }
-      const platform = 'bilibili';
-      const roomId: string = String(message.content.data.room_id);
-      const widgetId: string = window.location.pathname.split('/')[1];
-      this.checkAuthentication(widgetId, platform, roomId);
+      if (message.type === 'INTERACT_WORD') {
+        const content = JSON.parse(message.content);
+        const platform = 'bilibili';
+        const roomId: string = String(content.data.roomid);
+        const widgetId: string = window.location.pathname.split('/')[1];
+        this.checkAuthentication(widgetId, platform, roomId);
+      }
+      if (message.type === 'LIVE_OPEN_PLATFORM_DM' || message.type === 'LIVE_OPEN_PLATFORM_SEND_GIFT') {
+        const content = JSON.parse(message.content);
+        if (content.data.room_id === undefined) {
+          return message;
+        }
+        const platform = 'bilibili';
+        const roomId: string = String(content.data.room_id);
+        const widgetId: string = window.location.pathname.split('/')[1];
+        this.checkAuthentication(widgetId, platform, roomId);
+      }
+      if (this.isPiracy) {
+        // messages随机取一个
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        return randomMessage;
+      }
     }
-    if (this.isPiracy) {
-      // messages随机取一个
-      const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-      return randomMessage;
+    catch (error) {
+      console.log('DimSumAuth error', error);
     }
-
+    
     return message;
   }
 }
