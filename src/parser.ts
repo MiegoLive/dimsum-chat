@@ -94,8 +94,7 @@ class Parser {
         "SEND_GIFT"
       ],
       follow: [
-        "CommonActionSignalUserFollowAuthor",
-        "WebcastSocialMessage"
+        "CommonActionSignalUserFollowAuthor"
       ],
       joinclub: [
         "AcfunActionSignalJoinClub",
@@ -132,6 +131,14 @@ class Parser {
     if (this.rawType === "INTERACT_WORD") {
       const interactTypes = [undefined, "enter", "follow", "share", "follow", "follow", "like"];
       return interactTypes[this.rawContent.data.msg_type as number] as MessageType;
+    }
+    if (this.rawType === "WebcastSocialMessage") {
+      if (this.rawContent.action === 1) {
+        return "follow";
+      }
+      if (this.rawContent.action === 3) {
+        return "share";
+      }
     }
     return undefined;
   }
