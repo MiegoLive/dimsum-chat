@@ -70,14 +70,14 @@ export class DimSumAuth {
         this.checkAuthentication(widgetId, platform, roomId);
       }
       if (message.type === 'INTERACT_WORD') {
-        const content = typeof message.content === 'object'? message.content.data : JSON.parse(message.content);
+        const content = typeof message.content === 'object'? message.content : JSON.parse(message.content);
         const platform = 'bilibili';
         const roomId: string = String(content.data.roomid);
         const widgetId: string = window.location.pathname.split('/')[1];
         this.checkAuthentication(widgetId, platform, roomId);
       }
       if (message.type === 'LIVE_OPEN_PLATFORM_DM' || message.type === 'LIVE_OPEN_PLATFORM_SEND_GIFT') {
-        const content = typeof message.content === 'object'? message.content.data : JSON.parse(message.content);
+        const content = typeof message.content === 'object'? message.content : JSON.parse(message.content);
         if (content.data.room_id === undefined) {
           return message;
         }
