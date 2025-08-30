@@ -422,10 +422,14 @@ class Parser {
     const map = {
       acfun: () => {
         let content = escapeHtml(this.rawContent.content);
+        if ("emotionUrl" in this.rawContent && this.rawContent.emotionUrl) {
+          const emotionUrl = this.rawContent.emotionUrl;
+          return `<img src="${emotionUrl}" alt="" style="${stickerStyle}" class="${stickerClass}">`;
+        }
         let stickerPath = undefined;
         acfunCustomStickers.forEach(customSticker => {
           if (content.includes(customSticker.keyWord)) {
-            stickerPath = customSticker.path
+            stickerPath = customSticker.path;
           }
         });
         if (stickerPath != undefined) {
@@ -494,7 +498,9 @@ class Parser {
     const map = {
       acfun: () => {
         let content = escapeHtml(this.rawContent.content);
-        return builder(content);
+        // TODO: add cloud emoji as sticker
+        let stickerUrl = "emotionUrl" in this.rawContent && this.rawContent.emotionUrl ? this.rawContent.emotionUrl : undefined;
+        return builder(content, stickerUrl);
       },
       bilibili: () => {
         let stickerUrl = undefined;
@@ -611,7 +617,7 @@ class Parser {
           }
           Parser.douyinGiftGroup.set(key, comboCount);
           if (Parser.douyinGiftGroup.size > LIMIT) {
-            Parser.douyinGiftGroup.delete(Parser.douyinGiftGroup.keys().next().value);
+            Parser.douyinGiftGroup.delete(Parser.douyinGiftGroup.keys().next().value ?? "");
           }
           return comboCount - lastComboCount;
         }
