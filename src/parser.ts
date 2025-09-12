@@ -1,12 +1,14 @@
 "use strict";
 import { DouyinEmots } from "./emots/douyin-emots.js";
 import { BilibiliEmots } from "./emots/bilibili-emots.js";
+import { KuaishouEmots } from "./emots/kuaishou-emots.js";
 
 type MessageType = "comment" | "gift" | "follow" | "joinclub" | "like" | "guard" | "superchat" | "enter" | "share" | undefined;
 
 class Parser {
   // groupId_userId_giftId : comboCount
   private static douyinGiftGroup = new Map<string, number>();
+  private static kuaishouGiftGroup = new Map<string, number>();
 
   public readonly rawType: string;
   public readonly rawContent: any;
@@ -54,7 +56,7 @@ class Parser {
  *
  * @see {@link https://dimsum.chat/zh/api/parser.html#parser-platform}
  */
-  get platform(): "acfun" | "openblive" | "bilibili" | "douyin" | undefined {
+  get platform(): "acfun" | "openblive" | "bilibili" | "douyin" | "kuaishou" | undefined {
     const douyinPattern = /^Webcast[A-Z][a-zA-Z]*Message$/;
     const AcfunPattern = /^(Common|Acfun)(Action|State)Signal[A-Z][a-zA-Z]*/;
     if ("cmd" in this.rawContent && typeof(this.rawContent.cmd) === "string") {
@@ -66,6 +68,9 @@ class Parser {
     }
     if (douyinPattern.test(this.rawType)) {
       return "douyin";
+    }
+    if (this.rawType.startsWith("Kuaishou")){
+      return "kuaishou";
     }
     if (AcfunPattern.test(this.rawType)) {
       return "acfun";
@@ -85,13 +90,15 @@ class Parser {
         "LIVE_OPEN_PLATFORM_DM",
         "CommonActionSignalComment",
         "WebcastChatMessage",
-        "DANMU_MSG"
+        "DANMU_MSG",
+        "KuaishouCommentFeeds"
       ],
       gift: [
         "LIVE_OPEN_PLATFORM_SEND_GIFT",
         "CommonActionSignalGift",
         "WebcastGiftMessage",
-        "SEND_GIFT"
+        "SEND_GIFT",
+        "KuaishouGiftFeeds"
       ],
       follow: [
         "CommonActionSignalUserFollowAuthor"
@@ -104,7 +111,8 @@ class Parser {
         "LIVE_OPEN_PLATFORM_LIKE",
         "CommonActionSignalLike",
         "WebcastLikeMessage",
-        "LIKE_INFO_V3_CLICK"
+        "LIKE_INFO_V3_CLICK",
+        "KuaishouLikeFeeds"
       ],
       guard: [
         "LIVE_OPEN_PLATFORM_GUARD",
@@ -118,7 +126,9 @@ class Parser {
         "CommonActionSignalUserEnterRoom",
         "WebcastMemberMessage"
       ],
-      share: []
+      share: [
+        "KuaishouShareFeeds"
+      ]
     };
     if (this.rawType === "WebcastGiftMessage" && this.rawContent.repeatEnd === 1) {
       return undefined; // ignore repeatend gift message
@@ -180,6 +190,11 @@ class Parser {
         return this.rawContent.user.nickName;
       }
     }
+    if (this.platform === "kuaishou") {
+      if ("user" in this.rawContent) {
+        return this.rawContent.user.userName;
+      }
+    }
     return undefined;
   }
 
@@ -215,6 +230,11 @@ class Parser {
     if (this.platform === "douyin") {
       if ("user" in this.rawContent) {
         return this.rawContent.user.id;
+      }
+    }
+    if (this.platform === "kuaishou") {
+      if ("user" in this.rawContent) {
+        return this.rawContent.user.principalId;
       }
     }
     return undefined;
@@ -384,6 +404,13 @@ class Parser {
         return this.rawContent.user.avatarThumb.urlListList[0];
       }
     }
+    if (this.platform === "kuaishou") {
+      if ("user" in this.rawContent) {
+        if ("headUrl" in this.rawContent.user && this.rawContent.user.headUrl) {
+          return this.rawContent.user.headUrl;
+        }
+      }
+    }
     return undefined;
   }
 
@@ -392,7 +419,8 @@ class Parser {
       acfun: () => this.rawContent.content,
       bilibili: () => this.rawContent.info[1],
       openblive: () => this.rawContent.data.msg,
-      douyin: () => this.rawContent.content
+      douyin: () => this.rawContent.content,
+      kuaishou: () => this.rawContent.content
     }
     if (this.type === "comment" && map[this.platform as keyof typeof map]) {
       return map[this.platform as keyof typeof map]();
@@ -476,6 +504,14 @@ class Parser {
           content = content.replace(re, `<img src="${emots[1]}" alt="" style="${emotStyle}" class="${emotClass}">`);
         });
         return content;
+      },
+      kuaishou: () => {
+        let content = escapeHtml(this.rawContent.content);
+        KuaishouEmots.forEach(emots => {
+          const re = new RegExp(`\\${emots[0]}`, "g");
+          content = content.replace(re, `<img src="${emots[1]}" alt="" style="${emotStyle}" class="${emotClass}">`);
+        });
+        return content;
       }
     }
     if (this.type === "comment" && map[this.platform as keyof typeof map]) {
@@ -498,7 +534,6 @@ class Parser {
     const map = {
       acfun: () => {
         let content = escapeHtml(this.rawContent.content);
-        // TODO: add cloud emoji as sticker
         let stickerUrl = "emotionUrl" in this.rawContent && this.rawContent.emotionUrl ? this.rawContent.emotionUrl : undefined;
         return builder(content, stickerUrl);
       },
@@ -528,6 +563,10 @@ class Parser {
       douyin: () => {
         const content = escapeHtml(this.rawContent.content);
         return builder(content, undefined, DouyinEmots);
+      },
+      kuaishou: () => {
+        const content = escapeHtml(this.rawContent.content);
+        return builder(content, undefined, KuaishouEmots);
       }
     }
     if (this.type === "comment" && map[this.platform as keyof typeof map]) {
@@ -589,7 +628,8 @@ class Parser {
       acfun: () => this.rawContent.giftInfo.name,
       bilibili: () => this.rawContent.data.giftName,
       openblive: () => this.rawContent.data.gift_name,
-      douyin: () => this.rawContent.gift.name
+      douyin: () => this.rawContent.gift.name,
+      kuaishou: () => this.rawContent.giftInfo.name
     }
     if (this.type === "gift" && map[this.platform as keyof typeof map]) {
       return map[this.platform as keyof typeof map]();
@@ -622,6 +662,20 @@ class Parser {
           return comboCount - lastComboCount;
         }
         return this.rawContent.groupCount;
+      },
+      kuaishou: () => {
+        const LIMIT = 1024;
+        const totalCount =this.rawContent.batchSize * this.rawContent.comboCount;
+        const key = this.rawContent.mergeKey;
+        let lastComboCount = 0;
+        if (Parser.kuaishouGiftGroup.has(key)) {
+          lastComboCount = Parser.kuaishouGiftGroup.get(key) ?? 0;
+        }
+        Parser.kuaishouGiftGroup.set(key, totalCount);
+        if (Parser.kuaishouGiftGroup.size > LIMIT) {
+          Parser.kuaishouGiftGroup.delete(Parser.kuaishouGiftGroup.keys().next().value ?? "");
+        }
+        return totalCount - lastComboCount;
       }
     }
     if (this.type === "gift" && map[this.platform as keyof typeof map]) {
@@ -651,7 +705,8 @@ class Parser {
         }
         return 0;
       },
-      douyin: () => this.rawContent.gift.diamondCount / 10
+      douyin: () => this.rawContent.gift.diamondCount / 10,
+      kuaishou: () => this.rawContent.giftInfo.unitPrice / 10
     }
     if (this.type === "gift" && map[this.platform as keyof typeof map]) {
       return map[this.platform as keyof typeof map]();
@@ -665,6 +720,18 @@ class Parser {
       return this.giftNum * this.giftUnitPrice;
     }
     return undefined;
+  }
+
+  get giftImage(): string | undefined {
+    if (this.type !== "gift") return undefined;
+    const map = {
+      acfun: () => this.rawContent.giftInfo.pic,
+      bilibili: () => this.rawContent.data.gift_info.webp,
+      openblive: () => this.rawContent.data.gift_icon,
+      douyin: () => this.rawContent.gift.image.urlListList[0],
+      kuaishou: () => this.rawContent.giftInfo.picUrl[0].url
+    }
+    return map[this.platform as keyof typeof map]();
   }
 
   get superChatComment(): string | undefined {
@@ -706,6 +773,7 @@ class Parser {
   public getAbstractLevel(options: abstractLevelOptions = {}): number | undefined {
     const {
       douyinSteps = [7, 11, 15],
+      kuaishouSteps = [7, 11, 15],
       acfunSteps = [7, 11, 15],
       acfunClubUid = 0
     } = options;
@@ -719,6 +787,7 @@ class Parser {
     }
     const map = {
       douyin: () => getLevelBySteps(douyinSteps),
+      kuaishou: () => getLevelBySteps(kuaishouSteps),
       acfun: () => acfunClubUid > 0 && this.acfunClubUid !== acfunClubUid ? 0 : getLevelBySteps(acfunSteps),
       bilibili: () => getLevelByGuard(),
       openblive: () => getLevelByGuard()
@@ -747,6 +816,7 @@ interface commentParseOptions {
 
 interface abstractLevelOptions {
   douyinSteps?: number[]
+  kuaishouSteps?: number[]
   acfunSteps?: number[]
   acfunClubUid?: number
 }
