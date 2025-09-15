@@ -45,10 +45,15 @@ class Parser {
   }
 
   private getCachedValue(key: string, calculateFn: () => any): any {
-    if (!this._cachedValues[key]) {
-        this._cachedValues[key] = calculateFn();
+    try {
+      if (!this._cachedValues[key]) {
+          this._cachedValues[key] = calculateFn();
+      }
+      return this._cachedValues[key];
+    } catch (error) {
+      console.error(error);
+      return undefined;
     }
-    return this._cachedValues[key];
   }
 
 /**
@@ -322,7 +327,7 @@ class Parser {
     }
     if (this.platform === "douyin") {
       if ("user" in this.rawContent) {
-        return this.rawContent.user.fansClub.data.clubName;
+        return this.rawContent.user.fansClub?.data?.clubName;
       }
     }
     return undefined;
