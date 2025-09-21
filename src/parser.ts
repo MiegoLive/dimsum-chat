@@ -61,7 +61,7 @@ class Parser {
  *
  * @see {@link https://dimsum.chat/zh/api/parser.html#parser-platform}
  */
-  get platform(): "acfun" | "openblive" | "bilibili" | "douyin" | "kuaishou" | undefined {
+  get platform(): "acfun" | "openblive" | "bilibili" | "douyin" | "kuaishou" | "chzzk" | undefined {
     const douyinPattern = /^Webcast[A-Z][a-zA-Z]*Message$/;
     const AcfunPattern = /^(Common|Acfun)(Action|State)Signal[A-Z][a-zA-Z]*/;
     if ("cmd" in this.rawContent && typeof(this.rawContent.cmd) === "string") {
@@ -76,6 +76,9 @@ class Parser {
     }
     if (this.rawType.startsWith("Kuaishou")){
       return "kuaishou";
+    }
+    if (this.rawType.startsWith("Chzzk")){
+      return "chzzk";
     }
     if (AcfunPattern.test(this.rawType)) {
       return "acfun";
@@ -96,7 +99,8 @@ class Parser {
         "CommonActionSignalComment",
         "WebcastChatMessage",
         "DANMU_MSG",
-        "KuaishouCommentFeeds"
+        "KuaishouCommentFeeds",
+        "ChzzkChatMessage"
       ],
       gift: [
         "LIVE_OPEN_PLATFORM_SEND_GIFT",
@@ -121,11 +125,13 @@ class Parser {
       ],
       guard: [
         "LIVE_OPEN_PLATFORM_GUARD",
-        "GUARD_BUY"
+        "GUARD_BUY",
+        "ChzzkSubscriptionMessage"
       ],
       superchat: [
         "LIVE_OPEN_PLATFORM_SUPER_CHAT",
-        "SUPER_CHAT_MESSAGE"
+        "SUPER_CHAT_MESSAGE",
+        "ChzzkDonationMessage"
       ],
       enter: [
         "CommonActionSignalUserEnterRoom",
@@ -200,6 +206,12 @@ class Parser {
         return this.rawContent.user.userName;
       }
     }
+    if (this.platform === "chzzk") {
+      if (this.rawContent.profile) {
+        const profile = JSON.parse(this.rawContent.profile);
+        return profile.nickname;
+      }
+    }
     return undefined;
   }
 
@@ -240,6 +252,11 @@ class Parser {
     if (this.platform === "kuaishou") {
       if ("user" in this.rawContent) {
         return this.rawContent.user.principalId;
+      }
+    }
+    if (this.platform === "chzzk") {
+      if ("uid" in this.rawContent) {
+        return this.rawContent.uid; // could be "anonymous"
       }
     }
     return undefined;
@@ -425,7 +442,8 @@ class Parser {
       bilibili: () => this.rawContent.info[1],
       openblive: () => this.rawContent.data.msg,
       douyin: () => this.rawContent.content,
-      kuaishou: () => this.rawContent.content
+      kuaishou: () => this.rawContent.content,
+      chzzk: () => this.rawContent.msg
     }
     if (this.type === "comment" && map[this.platform as keyof typeof map]) {
       return map[this.platform as keyof typeof map]();
@@ -517,6 +535,18 @@ class Parser {
           content = content.replace(re, `<img src="${emots[1]}" alt="" style="${emotStyle}" class="${emotClass}">`);
         });
         return content;
+      },
+      chzzk: () => {
+        let content = escapeHtml(this.rawContent.msg);
+        if (this.rawContent.extras) {
+          const extras = JSON.parse(this.rawContent.extras);
+          const emojis = extras.emojis || {}; // {"key": "url"} replace {:key:}
+          for (let emoji in emojis) {
+            const re = new RegExp(`\\{:${emoji}:}`, "g");
+            content = content.replace(re, `<img src="${emojis[emoji]}" alt="" style="${emotStyle}" class="${emotClass}">`);
+          }
+          return content;
+        }
       }
     }
     if (this.type === "comment" && map[this.platform as keyof typeof map]) {
@@ -544,7 +574,7 @@ class Parser {
       },
       bilibili: () => {
         let stickerUrl = undefined;
-        let TempEmots: [string, string][] = []
+        let TempEmots: [string, string][] = [];
         if ( typeof(this.rawContent.info[0][13]) === "object") {
           stickerUrl = this.rawContent.info[0][13].url;
         }
@@ -572,6 +602,18 @@ class Parser {
       kuaishou: () => {
         const content = escapeHtml(this.rawContent.content);
         return builder(content, undefined, KuaishouEmots);
+      },
+      chzzk: () => {
+        let content = escapeHtml(this.rawContent.msg);
+        let TempEmots: [string, string][] = [];
+        if (this.rawContent.extras) {
+          const extras = JSON.parse(this.rawContent.extras);
+          const emojis = extras.emojis || {}; // {"key": "url"} replace {:key:}
+          for (let emoji in emojis) {
+            TempEmots.push([`{:${emoji}:}`, emojis[emoji]]);
+          }
+        }
+        return builder(content, undefined, TempEmots);
       }
     }
     if (this.type === "comment" && map[this.platform as keyof typeof map]) {
@@ -599,6 +641,13 @@ class Parser {
         }
       }
     }
+    if (this.platform === "chzzk") {
+      const tier = this.chzzkTier;
+      if (tier && tier <= 3 && tier >= 1){
+        return (4 - tier) as 3 | 2 | 1;
+      }
+      return 0;
+    }
     return undefined;
   }
 
@@ -613,6 +662,9 @@ class Parser {
         }
       }
     }
+    if (this.platform === "chzzk") {
+      return this.chzzkTierMonth;
+    }
     return undefined;
   }
 
@@ -622,6 +674,32 @@ class Parser {
       if ("data" in this.rawContent) {
         if ("price" in this.rawContent.data) {
           return this.rawContent.data.price / 1000;
+        }
+      }
+    }
+    return undefined;
+  }
+
+  get chzzkTier(): number | undefined {
+    if (this.platform === "chzzk") {
+      if (this.rawType === "ChzzkSubscriptionMessage") {
+        if (this.rawContent.extras) {
+          const extras = JSON.parse(this.rawContent.extras);
+          const tierNo = extras.tierNo;
+          return tierNo;
+        }
+      }
+    }
+    return undefined;
+  }
+
+  get chzzkTierMonth(): number | undefined {
+    if (this.platform === "chzzk") {
+      if (this.rawType === "ChzzkSubscriptionMessage") {
+        if (this.rawContent.extras) {
+          const extras = JSON.parse(this.rawContent.extras);
+          const month = extras.month;
+          return month;
         }
       }
     }
@@ -743,6 +821,7 @@ class Parser {
     const map = {
       bilibili: () => this.rawContent.data.message,
       openblive: () => this.rawContent.data.message,
+      chzzk: () => this.rawContent.msg,
     }
     if (this.type === "superchat" && map[this.platform as keyof typeof map]) {
       return map[this.platform as keyof typeof map]();
@@ -755,6 +834,14 @@ class Parser {
     const map = {
       bilibili: () => this.rawContent.data.price,
       openblive: () => this.rawContent.data.rmb,
+      chzzk: () => {
+        if (this.rawContent.extras) {
+          const extras = JSON.parse(this.rawContent.extras);
+          const payAmount = extras.payAmount;
+          return payAmount; // 1 cheese = 1 South Korean won
+        }
+        return undefined;
+      }
     }
     if (this.type === "superchat" && map[this.platform as keyof typeof map]) {
       return map[this.platform as keyof typeof map]();
@@ -795,7 +882,8 @@ class Parser {
       kuaishou: () => getLevelBySteps(kuaishouSteps),
       acfun: () => acfunClubUid > 0 && this.acfunClubUid !== acfunClubUid ? 0 : getLevelBySteps(acfunSteps),
       bilibili: () => getLevelByGuard(),
-      openblive: () => getLevelByGuard()
+      openblive: () => getLevelByGuard(),
+      chzzk: () => this.chzzkTier ?? 0
     }
     if (map[this.platform as keyof typeof map]) {
       return map[this.platform as keyof typeof map]();
