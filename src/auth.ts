@@ -32,6 +32,8 @@ export class DimSumAuth {
     widgetId = this.updateWidgetId(widgetId);
     if (!this.WHITELIST_WIDGETS.includes(widgetId)) return;
     if (this.authenticatedPlatformAndRoomId === `${platform}-${roomId}`) return;
+    // 不验证 chzzk 平台的 bonk widget
+    if (platform === 'chzzk' && widgetId === 'dimsum-bonk-2024-widget') return;
     
     const retry = () => {
       this.retryCount++;
