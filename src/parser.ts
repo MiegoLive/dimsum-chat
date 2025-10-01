@@ -175,36 +175,22 @@ class Parser {
         return this.rawContent.info[2][1];
       }
       if ("data" in this.rawContent) {
-        if ("user_info" in this.rawContent.data) {
-          if ("uname" in this.rawContent.data.user_info) {
-            return this.rawContent.data.user_info.uname;
-          }
-        }
-        if ("uname" in this.rawContent.data) {
-          return this.rawContent.data.uname;
-        }
-        if ("username" in this.rawContent.data) {
-          return this.rawContent.data.username;
-        }
+        const userInfo = this.rawContent.data.user_info || this.rawContent.data;
+        return userInfo?.uname ?? userInfo?.username;
       }
     }
     if (this.platform === "acfun") {
-      if ("gift" in this.rawContent) {
-        return this.rawContent.gift.userInfo.nickname;
-      }
-      if ("userInfo" in this.rawContent) {
-        return this.rawContent.userInfo.nickname;
-      }
+      const userInfo = this.rawContent.gift?.userInfo || this.rawContent.userInfo;
+      return userInfo?.nickname;
     }
     if (this.platform === "douyin") {
       if ("user" in this.rawContent) {
-        return this.rawContent.user.nickName;
+        // 需要兼容nickName和nickname 两种字段
+        return this.rawContent.user.nickName ?? this.rawContent.user.nickname;
       }
     }
     if (this.platform === "kuaishou") {
-      if ("user" in this.rawContent) {
-        return this.rawContent.user.userName;
-      }
+      return this.rawContent.user?.userName;
     }
     if (this.platform === "chzzk") {
       if (this.rawContent.profile) {
@@ -423,7 +409,9 @@ class Parser {
     }
     if (this.platform === "douyin") {
       if ("user" in this.rawContent) {
-        return this.rawContent.user.avatarThumb.urlListList[0];
+        // 需要兼容 urlListList 和 urlList 两种字段
+        const avatarThumb = this.rawContent.user.avatarThumb;
+        return avatarThumb.urlListList?.[0] ?? avatarThumb.urlList?.[0];
       }
     }
     if (this.platform === "kuaishou") {
@@ -811,7 +799,7 @@ class Parser {
       acfun: () => this.rawContent.giftInfo.pic,
       bilibili: () => this.rawContent.data.gift_info.webp,
       openblive: () => this.rawContent.data.gift_icon,
-      douyin: () => this.rawContent.gift.image.urlListList[0],
+      douyin: () => this.rawContent.gift.image.urlListList[0] ?? this.rawContent.gift.image.urlList[0],
       kuaishou: () => this.rawContent.giftInfo.picUrl[0].url
     }
     return map[this.platform as keyof typeof map]();
