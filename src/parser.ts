@@ -799,7 +799,10 @@ class Parser {
       acfun: () => this.rawContent.giftInfo.pic,
       bilibili: () => this.rawContent.data.gift_info.webp,
       openblive: () => this.rawContent.data.gift_icon,
-      douyin: () => this.rawContent.gift.image.urlListList[0] ?? this.rawContent.gift.image.urlList[0],
+      douyin: () => {
+        const image = this.rawContent.gift.image;
+        return image.urlListList?.[0] ?? image.urlList?.[0];
+      },
       kuaishou: () => this.rawContent.giftInfo.picUrl[0].url
     }
     return map[this.platform as keyof typeof map]();
