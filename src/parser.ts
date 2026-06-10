@@ -6,6 +6,28 @@ import { KuaishouEmots } from "./emots/kuaishou-emots.js";
 type MessageType = "comment" | "gift" | "follow" | "joinclub" | "like" | "guard" | "superchat" | "enter" | "share" | undefined;
 
 class Parser {
+  /**
+   * Douyin emoji mappings. Accessible directly without going through CommentBuilder.
+   *
+   * @example
+   * Parser.DouyinEmots.forEach(([emot, url]) => console.log(emot, url));
+   */
+  static readonly DouyinEmots: readonly [string, string][] = DouyinEmots;
+  /**
+   * Bilibili emoji mappings (also used by OpenBLive).
+   *
+   * @example
+   * Parser.BilibiliEmots.forEach(([emot, url]) => console.log(emot, url));
+   */
+  static readonly BilibiliEmots: readonly [string, string][] = BilibiliEmots;
+  /**
+   * Kuaishou emoji mappings.
+   *
+   * @example
+   * Parser.KuaishouEmots.forEach(([emot, url]) => console.log(emot, url));
+   */
+  static readonly KuaishouEmots: readonly [string, string][] = KuaishouEmots;
+
   // groupId_userId_giftId : comboCount
   private static douyinGiftGroup = new Map<string, number>();
   private static kuaishouGiftGroup = new Map<string, number>();
