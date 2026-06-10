@@ -11,6 +11,14 @@ class WebSocketManager {
   private webSocket: WebSocket | null;
   private messageListeners: ((message: string) => void)[];
 
+  /**
+   * Nickname for this widget instance.
+   * Set before connection (via onMessageOptions) or dynamically at runtime.
+   * When non-empty, it will be included in DimSumChatWidgetInfoResponse
+   * so other components can identify this widget via DimSumChatCallMessageRequest.
+   */
+  public widgetNickName: string = '';
+
   private constructor() {
     this.webSocket = null;
     this.messageListeners = [];
@@ -51,7 +59,9 @@ class WebSocketManager {
     const message = event.data;
     this.messageListeners.forEach(listener => listener(message));
     const messageObj = JSON.parse(message) as Message;
-    const response = handleMessage(messageObj);
+    const response = handleMessage(messageObj, {
+      widgetNickName: this.widgetNickName
+    });
     if (response) {
       this.webSocket?.send(JSON.stringify(response));
     }
@@ -96,15 +106,26 @@ function getBfaceURL(uid: string | number): string {
 }
 
 interface onMessageOptions {
-  customWsServer?: string | URL
+  customWsServer?: string | URL;
+  /**
+   * Nickname for this widget instance.
+   * Set this to identify your widget when communicating between components
+   * (e.g., via DimSumChatCallMessageRequest).
+   *
+   * Can also be set directly on WebSocketManager.getInstance().widgetNickName
+   * at any point before the DimSumChatWidgetInfoRequest is received.
+   */
+  widgetNickName?: string;
 }
 
 function onMessage(callback: (message: Message, parser: Parser) => void, options: onMessageOptions = {}): void {
   const {
-    customWsServer = getWebSocketURL()
+    customWsServer = getWebSocketURL(),
+    widgetNickName = ''
   } = options;
   const auth = DimSumAuth.getInstance();
   const webSocketManager = WebSocketManager.getInstance();
+  webSocketManager.widgetNickName = widgetNickName;
   webSocketManager.connect(customWsServer);
   webSocketManager.addMessageListener(messageString => {
     const message = JSON.parse(messageString) as Message;
