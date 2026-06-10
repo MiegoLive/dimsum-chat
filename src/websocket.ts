@@ -13,6 +13,7 @@ import { handleMessage } from "./dimsumMessage";
  * - 建立连接（仅调用一次）
  * - 自动重连（断开后每 3 秒重试）
  * - 消息分发到多个监听器
+ * - 通过 send() 主动发送消息到主程序
  * - 内部自动处理 DimSumChatWidgetInfoRequest 等握手消息
  *
  * @see {@link https://dimsum.chat/zh/api/websocket-manager.html}
@@ -119,6 +120,36 @@ class WebSocketManager {
     if (index !== -1) {
       this.messageListeners.splice(index, 1);
     }
+  }
+
+  /**
+   * 通过 WebSocket 主动发送消息到主程序。
+   *
+   * 连接未就绪时静默失败，不会抛出异常。
+   *
+   * @param message - 要发送的消息对象，会自动 JSON.stringify
+   * @returns 发送成功返回 true，连接未就绪返回 false
+   *
+   * @example
+   * ```ts
+   * import { WebSocketManager } from 'dimsum-chat'
+   *
+   * const ws = WebSocketManager.getInstance()
+   * ws.send({
+   *   type: 'DimSumChatCallMessageRequest',
+   *   content: {
+   *     targetNickName: 'another-widget',
+   *     requestData: { action: 'refresh' }
+   *   }
+   * })
+   * ```
+   */
+  public send(message: object): boolean {
+    if (this.webSocket?.readyState === WebSocket.OPEN) {
+      this.webSocket.send(JSON.stringify(message));
+      return true;
+    }
+    return false;
   }
 }
 
