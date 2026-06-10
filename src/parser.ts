@@ -5,6 +5,20 @@ import { KuaishouEmots } from "./emots/kuaishou-emots.js";
 
 type MessageType = "comment" | "gift" | "follow" | "joinclub" | "like" | "guard" | "superchat" | "enter" | "share" | undefined;
 
+/**
+ * 多平台直播消息解析器。
+ *
+ * 将各平台（B站/OpenBLive/抖音/快手/AcFun/CHZZK）的原始消息
+ * 统一解析为便于使用的属性访问接口，内置属性值缓存机制。
+ *
+ * @example
+ * ```ts
+ * const parser = new Parser({ type: 'DANMU_MSG', content: '...' })
+ * console.log(parser.platform, parser.userName, parser.comment)
+ * ```
+ *
+ * @see {@link https://dimsum.chat/zh/api/parser.html}
+ */
 class Parser {
   /**
    * Douyin emoji mappings. Accessible directly without going through CommentBuilder.
@@ -32,7 +46,9 @@ class Parser {
   private static douyinGiftGroup = new Map<string, number>();
   private static kuaishouGiftGroup = new Map<string, number>();
 
+  /** 原始消息类型。 */
   public readonly rawType: string;
+  /** 原始消息内容（字符串已自动反序列化为对象）。 */
   public readonly rawContent: any;
 
   private _cachedValues: { [key: string]: any } = {};
@@ -270,6 +286,7 @@ class Parser {
     return undefined;
   }
 
+  /** 粉丝团/守护团等级。 */
   get clubLevel(): number | undefined {
     if (this.platform === "bilibili" || this.platform === "openblive") {
       if (this.rawType === "DANMU_MSG") {
@@ -314,6 +331,7 @@ class Parser {
     return undefined;
   }
 
+  /** 粉丝团/守护团名称。 */
   get clubName(): string | undefined {
     if (this.platform === "bilibili" || this.platform === "openblive") {
       if (this.rawType === "DANMU_MSG") {
@@ -358,6 +376,7 @@ class Parser {
     return undefined;
   }
 
+  /** AcFun 守护团所属主播的用户 ID。 */
   get acfunClubUid(): number | undefined {
     if (this.platform === "acfun") {
       let userInfo;
@@ -402,6 +421,13 @@ class Parser {
     return undefined;
   }
 
+  /**
+   * 用户头像 URL。
+   *
+   * B 站头像存在跨域限制，建议配合 getBfaceURL() 使用。
+   *
+   * @see {@link https://dimsum.chat/zh/api/parser.html#parser-avatar}
+   */
   get avatar(): string | undefined {
     if (this.platform === "bilibili" || this.platform === "openblive") {
       if ("data" in this.rawContent) {
@@ -446,6 +472,13 @@ class Parser {
     return undefined;
   }
 
+  /**
+   * 弹幕聊天内容。
+   *
+   * 当 type 为 comment 或 superchat 时均有值。
+   *
+   * @see {@link https://dimsum.chat/zh/api/parser.html#parser-comment}
+   */
   get comment(): string | undefined {
     const map = {
       acfun: () => this.rawContent.content,
@@ -634,8 +667,14 @@ class Parser {
   }
 
   /**
-   * 大航海等级：0-无 3-舰长 2-提督 1-总督
-   * 若type为guard，则为购买的大航海等级
+   * 大航海等级。
+   *
+   * 0=无，3=舰长，2=提督，1=总督。
+   * 当 type 为 guard 时，表示本次购买的大航海等级；
+   * 其他消息类型中表示该用户当前的大航海等级。
+   * Chzzk 平台的 Subscription 事件也支持此属性。
+   *
+   * @see {@link https://dimsum.chat/zh/api/parser.html#parser-guardlevel}
    */
   get guardLevel(): 0 | 3 | 2 | 1 | undefined {
     if (this.platform === "bilibili" || this.platform === "openblive") {
@@ -661,6 +700,13 @@ class Parser {
     return undefined;
   }
 
+  /**
+   * 大航海购买数量。
+   *
+   * B 站表示购买月数，Chzzk 表示订阅月数。
+   *
+   * @see {@link https://dimsum.chat/zh/api/parser.html#parser-guardnum}
+   */
   get guardNum(): number | undefined {
     if (this.platform === "bilibili" || this.platform === "openblive") {
       if (this.rawType === "GUARD_BUY") {
@@ -678,6 +724,11 @@ class Parser {
     return undefined;
   }
 
+  /**
+   * 大航海购买价格（CNY）。
+   *
+   * @see {@link https://dimsum.chat/zh/api/parser.html#parser-guardprice}
+   */
   // 可能是单价（未确认），舰长价格198实际可能为138
   get guardPrice(): number | undefined {
     if (this.platform === "bilibili" || this.platform === "openblive") {
@@ -690,6 +741,7 @@ class Parser {
     return undefined;
   }
 
+  /** Chzzk 订阅等级（1-3）。 */
   get chzzkTier(): number | undefined {
     if (this.platform === "chzzk") {
       if (this.rawType === "ChzzkSubscriptionMessage") {
@@ -703,6 +755,7 @@ class Parser {
     return undefined;
   }
 
+  /** Chzzk 订阅月数。 */
   get chzzkTierMonth(): number | undefined {
     if (this.platform === "chzzk") {
       if (this.rawType === "ChzzkSubscriptionMessage") {
@@ -716,6 +769,7 @@ class Parser {
     return undefined;
   }
 
+  /** 礼物名称。 */
   get giftName(): string | undefined {
     const map = {
       acfun: () => this.rawContent.giftInfo.name,
@@ -731,6 +785,13 @@ class Parser {
     }
   }
 
+  /**
+   * 礼物数量。
+   *
+   * 抖音和快手已由 SDK 内部处理连击去重，每次返回增量值。
+   *
+   * @see {@link https://dimsum.chat/zh/api/parser.html#parser-giftnum}
+   */
   get giftNum(): number | undefined {
     const map = {
       acfun: () => this.rawContent.gift.batchSize,
@@ -778,6 +839,13 @@ class Parser {
     }
   }
 
+  /**
+   * 单个礼物价格（CNY）。
+   *
+   * 免费礼物（如 B 站银瓜子）返回 0。
+   *
+   * @see {@link https://dimsum.chat/zh/api/parser.html#parser-giftunitprice}
+   */
   get giftUnitPrice(): number | undefined {
     const map = {
       acfun: () => {
@@ -808,6 +876,13 @@ class Parser {
     }
   }
 
+  /**
+   * 礼物总价值（CNY）。
+   *
+   * 等价于 giftNum × giftUnitPrice。
+   *
+   * @see {@link https://dimsum.chat/zh/api/parser.html#parser-gifttotalprice}
+   */
   get giftTotalPrice(): number | undefined {
     if (this.giftNum !== undefined && this.giftUnitPrice !== undefined) {
       return this.giftNum * this.giftUnitPrice;
@@ -815,6 +890,7 @@ class Parser {
     return undefined;
   }
 
+  /** 礼物图片 URL。 */
   get giftImage(): string | undefined {
     if (this.type !== "gift") return undefined;
     const map = {
@@ -830,6 +906,7 @@ class Parser {
     return map[this.platform as keyof typeof map]();
   }
 
+  /** 超级聊天评论内容。 */
   get superChatComment(): string | undefined {
     const map = {
       bilibili: () => this.rawContent.data.message,
@@ -843,6 +920,13 @@ class Parser {
     }
   }
 
+  /**
+   * 超级聊天价格。
+   *
+   * B 站与 OpenBLive 为人民币（元），Chzzk 为韩元（KRW）。
+   *
+   * @see {@link https://dimsum.chat/zh/api/parser.html#parser-superchatprice}
+   */
   get superChatPrice(): number | undefined {
     const map = {
       bilibili: () => this.rawContent.data.price,
@@ -863,6 +947,18 @@ class Parser {
     }
   }
 
+  /**
+   * 广义价格，根据消息类型自动选择对应价格属性：
+   *
+   * | 消息类型   | 对应属性          |
+   * |-----------|-----------------|
+   * | gift      | giftTotalPrice  |
+   * | superchat | superChatPrice  |
+   * | guard     | guardPrice      |
+   * | 其它      | undefined       |
+   *
+   * @see {@link https://dimsum.chat/zh/api/parser.html#parser-price}
+   */
   get price(): number | undefined {
     if (this.type === "gift") {
       return this.giftTotalPrice;
@@ -875,6 +971,15 @@ class Parser {
     }
   }
 
+  /**
+   * 获取用户的抽象化分级，用于渲染用户等级标识。
+   *
+   * 不同平台的映射规则见官网文档。
+   *
+   * @param options - 各平台分段阈值配置，见 {@link abstractLevelOptions}
+   * @returns 0-3 等级，undefined 表示不支持
+   * @see {@link https://dimsum.chat/zh/api/parser.html#parser-getabstractlevel}
+   */
   public getAbstractLevel(options: abstractLevelOptions = {}): number | undefined {
     const {
       douyinSteps = [7, 11, 15],
@@ -907,11 +1012,21 @@ class Parser {
 }
 
 
+/**
+ * getCommentHTML 渲染选项。
+ *
+ * @see {@link https://dimsum.chat/zh/api/parser.html#parser-getcommenthtml}
+ */
 interface commentParseOptions {
+  /** 贴纸表情的 CSS 样式。 */
   stickerStyle?: string
+  /** 贴纸表情的 CSS 类名。 */
   stickerClass?: string
+  /** 小表情的 CSS 样式。 */
   emotStyle?: string
+  /** 小表情的 CSS 类名。 */
   emotClass?: string
+  /** 自定义 AcFun 贴纸表情。仅 platform='acfun' 时生效。 */
   acfunCustomStickers?: {
     keyWord: string,
     path: string
@@ -920,10 +1035,21 @@ interface commentParseOptions {
   (stickerPath: string, content: string) => string
 }
 
+/**
+ * getAbstractLevel 配置选项。
+ *
+ * 各平台的默认分段均为 [7, 11, 15]，即 clubLevel ≤ 7 → 0, ≤ 11 → 1, ≤ 15 → 2, > 15 → 3。
+ *
+ * @see {@link https://dimsum.chat/zh/api/parser.html#parser-getabstractlevel}
+ */
 interface abstractLevelOptions {
+  /** 抖音 clubLevel 分段阈值，默认 [7, 11, 15]。 */
   douyinSteps?: number[]
+  /** 快手 clubLevel 分段阈值，默认 [7, 11, 15]。 */
   kuaishouSteps?: number[]
+  /** AcFun clubLevel 分段阈值，默认 [7, 11, 15]。 */
   acfunSteps?: number[]
+  /** AcFun 目标主播 UID。设置后仅该主播的守护团成员返回 >0 的值。 */
   acfunClubUid?: number
 }
 

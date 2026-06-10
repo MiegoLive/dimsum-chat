@@ -6,6 +6,17 @@ import { Message } from "./types";
 import { infoMessage } from "./infoMessage";
 import { handleMessage } from "./dimsumMessage";
 
+/**
+ * WebSocket 连接管理器（单例模式）。
+ *
+ * 管理 WebSocket 的连接生命周期：
+ * - 建立连接（仅调用一次）
+ * - 自动重连（断开后每 3 秒重试）
+ * - 消息分发到多个监听器
+ * - 内部自动处理 DimSumChatWidgetInfoRequest 等握手消息
+ *
+ * @see {@link https://dimsum.chat/zh/api/websocket-manager.html}
+ */
 class WebSocketManager {
   private static instance: WebSocketManager;
   private webSocket: WebSocket | null;
@@ -24,6 +35,11 @@ class WebSocketManager {
     this.messageListeners = [];
   }
 
+  /**
+   * 获取唯一的 WebSocket 管理器实例。
+   *
+   * @returns WebSocketManager 单例
+   */
   public static getInstance(): WebSocketManager {
     if (!WebSocketManager.instance) {
       WebSocketManager.instance = new WebSocketManager();
@@ -31,6 +47,15 @@ class WebSocketManager {
     return WebSocketManager.instance;
   }
 
+  /**
+   * 连接到指定 WebSocket 服务器。
+   *
+   * 仅可调用一次，重复调用将被忽略。
+   * 连接断开后自动每 3 秒尝试重连。
+   *
+   * @param url - WebSocket 服务器 URL
+   * @see {@link https://dimsum.chat/zh/api/websocket-manager.html#websocketmanager-connect}
+   */
   public connect(url: string | URL): void {
     if (this.webSocket) {
       return;
@@ -67,6 +92,15 @@ class WebSocketManager {
     }
   }
 
+  /**
+   * 注册消息监听器。
+   *
+   * 收到 WebSocket 消息后以字符串形式传递给监听器。
+   * 添加监听器时若连接已建立，会自动推送一条欢迎消息。
+   *
+   * @param listener - 消息回调，接收原始 JSON 字符串
+   * @see {@link https://dimsum.chat/zh/api/websocket-manager.html#websocketmanager-addmessagelistener}
+   */
   public addMessageListener(listener: (message: string) => void): void {
     this.messageListeners.push(listener);
 
@@ -75,6 +109,11 @@ class WebSocketManager {
     }, 100);
   }
 
+  /**
+   * 移除已注册的消息监听器。
+   *
+   * @param listener - 之前通过 addMessageListener 注册的回调
+   */
   public removeMessageListener(listener: (message: string) => void): void {
     const index = this.messageListeners.indexOf(listener);
     if (index !== -1) {
@@ -83,6 +122,14 @@ class WebSocketManager {
   }
 }
 
+/**
+ * 根据当前页面 URL 自动生成 WebSocket 服务器地址。
+ *
+ * http 页面 → ws://，https 页面 → wss://
+ * 路径固定为 /websocket。
+ *
+ * @returns WebSocket URL，例如 "ws://localhost:13500/websocket"
+ */
 function getWebSocketURL(): string {
   const parsedURL = new URL(window.location.href);
   const protocol = parsedURL.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -94,6 +141,14 @@ function getWebSocketURL(): string {
   return webSocketURL;
 }
 
+/**
+ * 生成 B 站用户头像的代理 URL。
+ *
+ * 走主程序 /bface/ 接口，避免跨域问题。
+ *
+ * @param uid - B 站用户 ID
+ * @returns 头像代理 URL，例如 "http://localhost:13500/bface/123456"
+ */
 function getBfaceURL(uid: string | number): string {
   const parsedURL = new URL(window.location.href);
   const protocol = parsedURL.protocol;
@@ -105,6 +160,11 @@ function getBfaceURL(uid: string | number): string {
   return bfaceURL;
 }
 
+/**
+ * onMessage 配置选项。
+ *
+ * @see {@link https://dimsum.chat/zh/api/websocket-manager.html#onmessage}
+ */
 interface onMessageOptions {
   customWsServer?: string | URL;
   /**
@@ -118,6 +178,26 @@ interface onMessageOptions {
   widgetNickName?: string;
 }
 
+/**
+ * 注册消息回调，一行代码接入直播间消息。
+ *
+ * 内部组合了 WebSocketManager、getWebSocketURL、Parser 和 DimSumAuth，
+ * 自动处理连接、认证和消息解析，开箱即用。
+ *
+ * @param callback - 消息回调，接收原始 Message 和已创建的 Parser 实例
+ * @param options - 配置选项（可选），支持自定义 WebSocket 服务器
+ *
+ * @example
+ * ```ts
+ * import { onMessage } from 'dimsum-chat'
+ *
+ * onMessage((msg, parser) => {
+ *   console.log(parser.userName + ': ' + parser.comment)
+ * })
+ * ```
+ *
+ * @see {@link https://dimsum.chat/zh/api/websocket-manager.html#onmessage}
+ */
 function onMessage(callback: (message: Message, parser: Parser) => void, options: onMessageOptions = {}): void {
   const {
     customWsServer = getWebSocketURL(),
