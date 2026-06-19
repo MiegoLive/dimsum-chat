@@ -14,7 +14,7 @@ export class DimSumAuth {
     return DimSumAuth.instance;
   }
 
-  private readonly AUTH_HOST = 'https://dimsum-widget-auth-1301031323.cos.ap-guangzhou.myqcloud.com';
+  private readonly AUTH_API = 'https://api.miego.live/widget/auth';
   private readonly WHITELIST_WIDGETS = ['dimsum-bonk-2024-widget', 'douyin-bonk-2024-widget'];
   private readonly MAX_RETRY_COUNT = 3;
   private authenticatedPlatformAndRoomId?: string = undefined;
@@ -46,7 +46,10 @@ export class DimSumAuth {
       }
     }
 
-    const url = `${this.AUTH_HOST}/${widgetId}/whitelist/${platform}/${roomId}`;
+    const url = new URL(this.AUTH_API);
+    url.searchParams.append('widget', widgetId);
+    url.searchParams.append('platform', platform);
+    url.searchParams.append('roomId', roomId);
     return fetch(url)
       .then(res => {
         console.log('checkAuthentication', res.status);
