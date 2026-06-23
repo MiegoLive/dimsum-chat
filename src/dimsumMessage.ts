@@ -38,7 +38,7 @@ export function handleMessage(
         content: {
           base: getBaseNameFromURL(),
           url: window.location.href,
-          ...(widgetNickName ? { widgetNickName } : {}),
+          ...(widgetNickName ? { nickName: widgetNickName } : {}),
         }
       };
   }

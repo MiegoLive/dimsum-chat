@@ -236,7 +236,7 @@ function onMessage(callback: (message: Message, parser: Parser) => void, options
   } = options;
   const auth = DimSumAuth.getInstance();
   const webSocketManager = WebSocketManager.getInstance();
-  webSocketManager.widgetNickName = widgetNickName;
+  if (widgetNickName) webSocketManager.widgetNickName = widgetNickName;
   webSocketManager.connect(customWsServer);
   webSocketManager.addMessageListener(messageString => {
     const message = JSON.parse(messageString) as Message;
